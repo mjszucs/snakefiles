@@ -1,0 +1,43 @@
+import os
+
+s = os.listdir("reads/")
+
+SAMPLES = []
+for x in s:
+    if x[0]  == ".":
+        pass
+    else:
+        SAMPLES.append(x[:-6])
+
+
+rule all:
+    input:
+        expand("qc/fastqc/{sample}.html", sample = SAMPLES),
+        expand("qc/fastqc/{sample}_fastqc.zip", sample = SAMPLES)
+
+rule fastqc:
+    input:
+        expand("reads/{sample}.fq.gz", sample = SAMPLES)
+    output:
+        html=expand("qc/fastqc/{sample}.html", sample = SAMPLES),
+        zip=expand("qc/fastqc/{sample}_fastqc.zip", sample = SAMPLES) # the suffix _fastqc.zip is necessary for multiqc to find the file. If not using multiqc, you are free to choose an arbitrary filename
+    shell:
+        "fastqc {input} --outdir qc/fastqc/"
+
+
+rule trim:
+    input:
+    	r1="{sample}_1.fq.gz",
+    	r2="{sample}_2.fq.gz"
+    output:
+    	o1="{sample}_1.trim.fq",
+    	o2="{sample}_2.trim.fq",
+    	o1un="{sample}_1un.trim.fq",
+    	o2un="{sample}_2un.trim.fq"
+    shell:
+    	"trimmomatic PE "
+    	"{input.r1} {input.r2} "
+    	"{output.o1} {output.o1un} "
+    	"{output.o2} {output.o2un} "
+    	"SLIDINGWINDOW:4:20 MINLEN:25 "
+    	"ILLUMINACLIP:NexteraPE-PE.fa:2:40:15"
